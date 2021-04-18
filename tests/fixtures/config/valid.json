@@ -1,0 +1,19 @@
+{
+  "traemplist_songs_count": 10,
+  "history": {
+    "since": "-10 days"
+  },
+  "accounts": [
+    {
+      "access_token": "valid_access_token",
+      "playlists": [
+        {
+          "id": "playlist_a"
+        },
+        {
+          "id": "playlist_b"
+        }
+      ]
+    }
+  ]
+}
