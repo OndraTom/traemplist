@@ -1,3 +1,6 @@
+.idea/
+venv/
+storage/*
+!storage/.gitkeep
 config.json
 .cache
-tracks.db

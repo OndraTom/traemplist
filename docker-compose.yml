@@ -1,0 +1,16 @@
+version: '3'
+services:
+    load_all_user_playlist_tracks_to_history:
+      build:
+        context: .
+      volumes:
+        - ./run_all_user_playlists_tracks_to_hisotry.py:/app/run.py
+        - ./config.json:/app/config.json
+        - ./storage:/app/storage
+    load_recent_tracks_to_history:
+      build:
+        context: .
+      volumes:
+        - ./run_recent_tracks_to_history.py:/app/run.py
+        - ./config.json:/app/config.json
+        - ./storage:/app/storage

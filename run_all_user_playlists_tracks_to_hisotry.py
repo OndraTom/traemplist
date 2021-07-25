@@ -4,13 +4,13 @@ from traemplist.repository import SqLiteTracksRepository
 from traemplist.history import TracksHistoryLoader
 
 
-config = JsonConfig("./config.json")
+config = JsonConfig("/app/config.json")
 client = SpotifyClient(credentials_config=config.get_accounts()[0].credentials)
 client.register_credentials_config_change_callback(
     config.save
 )
 history_loader = TracksHistoryLoader(
     client=client,
-    repository=SqLiteTracksRepository("./tracks.db")
+    repository=SqLiteTracksRepository("/app/storage/tracks.db")
 )
 history_loader.save_all_user_playlists_tracks()
