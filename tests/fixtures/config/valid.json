@@ -1,11 +1,12 @@
 {
   "traemplist_songs_count": 10,
-  "history": {
-    "since": "-10 days"
-  },
   "accounts": [
     {
-      "access_token": "valid_access_token",
+      "credentials": {
+        "client_id": "valid_id",
+        "client_secret": "valid_secret",
+        "refresh_token": "valid_refresh_token"
+      },
       "playlists": [
         {
           "id": "playlist_a"

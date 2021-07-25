@@ -1,8 +1,7 @@
 import json
 import jsonschema
-from dataclasses import dataclass
-from datetime import datetime
-from traemplist.utils import DatetimeUtil, DatetimeUtilException
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, asdict
 
 
 @dataclass(frozen=True)
@@ -10,25 +9,35 @@ class PlaylistConfig:
     id: str
 
 
+@dataclass(frozen=False)
+class AccountCredentialsConfig:
+    client_id: str
+    client_secret: str
+    refresh_token: str
+
+
 @dataclass(frozen=True)
 class AccountConfig:
-    access_token: str
+    credentials: AccountCredentialsConfig
     playlists: [PlaylistConfig]
 
 
-@dataclass(frozen=True)
-class HistoryConfig:
-    since: datetime
+class Config(ABC):
+
+    @abstractmethod
+    def get_traemplist_songs_count(self) -> int:
+        pass
+
+    @abstractmethod
+    def get_accounts(self) -> [AccountConfig]:
+        pass
+
+    @abstractmethod
+    def save(self) -> None:
+        pass
 
 
-@dataclass(frozen=True)
-class Config:
-    accounts: [AccountConfig]
-    history: HistoryConfig
-    traemplist_songs_count: int
-
-
-class ConfigFactory:
+class JsonConfig(Config):
 
     SCHEMA = {
         "type": "object",
@@ -38,24 +47,29 @@ class ConfigFactory:
                 "minimum": 10,
                 "maximum": 200
             },
-            "history": {
-                "type": "object",
-                "properties": {
-                    "since": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "since"
-                ]
-            },
             "accounts": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "properties": {
-                        "access_token": {
-                            "type": "string"
+                        "credentials": {
+                            "type": "object",
+                            "properties": {
+                                "client_id": {
+                                    "type": "string"
+                                },
+                                "client_secret": {
+                                    "type": "string"
+                                },
+                                "refresh_token": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "client_id",
+                                "client_secret",
+                                "refresh_token"
+                            ]
                         },
                         "playlists": {
                             "type": "array",
@@ -74,7 +88,7 @@ class ConfigFactory:
                         }
                     },
                     "required": [
-                        "access_token",
+                        "credentials",
                         "playlists"
                     ]
                 },
@@ -83,22 +97,32 @@ class ConfigFactory:
         },
         "required": [
             "traemplist_songs_count",
-            "history"
+            "accounts"
         ]
     }
 
-    def create_from_file(self, config_file_path: str) -> Config:
-        """
-        :raises ConfigFactoryException
-        """
-        config_data = self._get_config_data(config_file_path)
-        self._validate_config_data(config_data)
-        return self._get_config_from_data(config_data)
+    def __init__(self, config_file_path: str):
+        self.config_file_path = config_file_path
+        self.config_data = self._get_config_data()
+        self._validate_config_data(self.config_data)
+        self.accounts = self._get_accounts_from_data()
 
-    @staticmethod
-    def _get_config_data(config_file_path: str) -> dict:
+    def get_traemplist_songs_count(self) -> int:
+        return self.config_data["traemplist_songs_count"]
+
+    def get_accounts(self) -> [AccountConfig]:
+        return self.accounts
+
+    def save(self) -> None:
+        self.config_data["accounts"] = [asdict(account) for account in self.accounts]
+        with open(self.config_file_path, "w") as config_file:
+            config_file.write(
+                json.dumps(self.config_data, indent=2)
+            )
+
+    def _get_config_data(self) -> dict:
         try:
-            with open(config_file_path) as config_file:
+            with open(self.config_file_path) as config_file:
                 return json.load(config_file)
         except FileExistsError:
             raise ConfigFileNotFoundError
@@ -111,17 +135,9 @@ class ConfigFactory:
         except jsonschema.ValidationError:
             raise InvalidConfigDataError
 
-    def _get_config_from_data(self, config_data: dict) -> Config:
-        return Config(
-            accounts=self._get_accounts_from_data(config_data),
-            history=self._get_history_from_data(config_data),
-            traemplist_songs_count=config_data["traemplist_songs_count"]
-        )
-
-    @staticmethod
-    def _get_accounts_from_data(config_data: dict) -> [AccountConfig]:
+    def _get_accounts_from_data(self) -> [AccountConfig]:
         accounts = []
-        for account_data in config_data["accounts"]:
+        for account_data in self.config_data["accounts"]:
             playlists = []
             for playlist_data in account_data["playlists"]:
                 playlists.append(
@@ -129,36 +145,28 @@ class ConfigFactory:
                 )
             accounts.append(
                 AccountConfig(
-                    access_token=account_data["access_token"],
+                    credentials=AccountCredentialsConfig(
+                        client_id=account_data["credentials"]["client_id"],
+                        client_secret=account_data["credentials"]["client_secret"],
+                        refresh_token=account_data["credentials"]["refresh_token"]
+                    ),
                     playlists=playlists
                 )
             )
         return accounts
 
-    @staticmethod
-    def _get_history_from_data(config_data: dict) -> HistoryConfig:
-        try:
-            since = DatetimeUtil.get_guessed_time_from_string(config_data["history"]["since"])
-            if since > DatetimeUtil.get_now():
-                raise InvalidConfigDataError
-            return HistoryConfig(
-                since=since
-            )
-        except DatetimeUtilException:
-            raise InvalidConfigDataError
 
-
-class ConfigFactoryException(Exception):
+class ConfigException(Exception):
     pass
 
 
-class ConfigFileNotFoundError(ConfigFactoryException):
+class ConfigFileNotFoundError(ConfigException):
     pass
 
 
-class InvalidJsonError(ConfigFactoryException):
+class InvalidJsonError(ConfigException):
     pass
 
 
-class InvalidConfigDataError(ConfigFactoryException):
+class InvalidConfigDataError(ConfigException):
     pass
