@@ -24,12 +24,18 @@ class AccountConfig:
 
 class Config(ABC):
 
+    LIKED_SONGS_PLAYLIST_ID = "liked_songs"
+
     @abstractmethod
     def get_traemplist_songs_count(self) -> int:
         pass
 
     @abstractmethod
     def get_accounts(self) -> [AccountConfig]:
+        pass
+
+    @abstractmethod
+    def get_traemplist_id(self) -> str:
         pass
 
     @abstractmethod
@@ -93,11 +99,15 @@ class JsonConfig(Config):
                     ]
                 },
                 "minItems": 1
+            },
+            "traemplist_id": {
+                "type": "string"
             }
         },
         "required": [
             "traemplist_songs_count",
-            "accounts"
+            "accounts",
+            "traemplist_id"
         ]
     }
 
@@ -112,6 +122,9 @@ class JsonConfig(Config):
 
     def get_accounts(self) -> [AccountConfig]:
         return self.accounts
+
+    def get_traemplist_id(self) -> str:
+        return self.config_data["traemplist_id"]
 
     def save(self) -> None:
         self.config_data["accounts"] = [asdict(account) for account in self.accounts]

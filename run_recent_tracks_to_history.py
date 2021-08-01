@@ -2,7 +2,7 @@ from traemplist.logger import StandardOutputLogger
 from traemplist.config import JsonConfig
 from traemplist.client import SpotifyClient
 from traemplist.repository import SqLiteTracksRepository
-from traemplist.history import TracksHistoryLoader
+from traemplist.service import TracksHistoryService
 
 
 logger = StandardOutputLogger()
@@ -11,7 +11,7 @@ client = SpotifyClient(credentials_config=config.get_accounts()[0].credentials)
 client.register_credentials_config_change_callback(
     config.save
 )
-history_loader = TracksHistoryLoader(
+history_loader = TracksHistoryService(
     client=client,
     repository=SqLiteTracksRepository("/app/storage/tracks.db"),
     logger=logger
