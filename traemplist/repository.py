@@ -19,6 +19,10 @@ class TracksRepository(ABC):
     def contains_track(self, track_id: str) -> bool:
         pass
 
+    @abstractmethod
+    def tracks_total_count(self) -> int:
+        pass
+
 
 class SqLiteTracksRepository(TracksRepository):
 
@@ -52,6 +56,17 @@ class SqLiteTracksRepository(TracksRepository):
                 return cursor.execute(
                     f"SELECT COUNT(*) FROM tracks WHERE id = '{track_id}'"
                 ).fetchone()[0] > 0
+        finally:
+            self.lock.release()
+
+    def tracks_total_count(self) -> int:
+        self.lock.acquire()
+        try:
+            with self._get_connection() as connection:
+                cursor = connection.cursor()
+                return cursor.execute(
+                    f"SELECT COUNT(*) FROM tracks"
+                ).fetchone()[0]
         finally:
             self.lock.release()
 
