@@ -25,6 +25,7 @@ class TraemplistGenerator:
                     traemplist.add_track(track)
                     if len(traemplist) >= size:
                         return traemplist
+                    break
             input_tracks_collection.remove_artist_tracks(start_track.artist)
 
     def _get_related_artists_tracks(self, artist: Artist) -> TracksCollection:
