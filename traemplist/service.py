@@ -1,4 +1,4 @@
-from traemplist.config import Config
+from traemplist.config import Config, TraemplistConfig
 from traemplist.client import SpotifyClient, TracksCollection
 from traemplist.repository import TracksRepository, TrackRecord
 from traemplist.generator import TraemplistGenerator
@@ -46,30 +46,31 @@ class TracksHistoryService:
 
 class TraemplistGeneratorService:
 
-    def __init__(self, config: Config,
+    def __init__(self, config: TraemplistConfig,
                  client: SpotifyClient,
-                 history: TracksRepository,
                  generator: TraemplistGenerator,
                  logger: Logger):
         self.config = config
         self.client = client
-        self.history = history
         self.generator = generator
         self.logger = logger
 
     def generate_and_save_traemplist(self):
+        self.logger.log_info(f"Generating traemplist for account {self.config.account.credentials.client_id}")
         traemplist = self.generator.generate(
             input_tracks_collection=self._get_input_tracks(),
-            size=self.config.get_traemplist_songs_count()
+            size=self.config.traemplist_songs_count
         )
+        self.logger.log_info("Traemplist successfully generated. Uploading ..")
         self.client.replace_playlist_tracks(
-            playlist_id=self.config.get_traemplist_id(),
+            playlist_id=self.config.traemplist_id,
             new_track_ids=[track.id for track in traemplist.get_tracks()]
         )
+        self.logger.log_info("Traemplist uploaded")
 
     def _get_input_tracks(self) -> TracksCollection:
         input_tracks = TracksCollection()
-        for playlist in self.config.get_accounts()[0].playlists:
+        for playlist in self.config.account.playlists:
             if playlist.id == Config.LIKED_SONGS_PLAYLIST_ID:
                 input_tracks.add_tracks(
                     self.client.get_user_liked_tracks()

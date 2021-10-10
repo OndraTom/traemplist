@@ -27,3 +27,6 @@ jobs:
         username: root
         key: ${{ secrets.DIGITALOCEAN_SSH_PRIVATE_KEY }}
         script: cd /root/traemplist && git pull
+    - name: executing tests
+      uses: actions/checkout@v2
+      run: cd /root/traemplist && docker-compose up --build tests

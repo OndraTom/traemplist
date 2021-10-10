@@ -21,3 +21,7 @@ services:
         - ./run_traemplist_generator.py:/app/run.py
         - ./config.json:/app/config.json
         - ./storage:/app/storage
+    tests:
+      build:
+        context: .
+      command: ["python3", "-m", "unittest", "discover", "-p", "*_test.py", "-s", "./tests"]

@@ -89,5 +89,45 @@ class SqLiteTracksRepository(TracksRepository):
         return sqlite3.connect(self.db_file_path)
 
 
+class InMemoryTracksRepository(TracksRepository):
+
+    def __init__(self):
+        self.tracks = []
+        self.lock = Lock()
+
+    def save_tracks(self, tracks: [TrackRecord]) -> None:
+        if not tracks:
+            return
+        self.lock.acquire()
+        try:
+            for track in tracks:
+                if not self._contains_track(track.id, use_lock=False):
+                    self.tracks.append(track)
+        finally:
+            self.lock.release()
+
+    def contains_track(self, track_id: str) -> bool:
+        return self._contains_track(track_id, use_lock=True)
+
+    def _contains_track(self, track_id: str, use_lock: bool) -> bool:
+        if use_lock:
+            self.lock.acquire()
+        try:
+            for track in self.tracks:
+                if track.id == track_id:
+                    return True
+            return False
+        finally:
+            if use_lock:
+                self.lock.release()
+
+    def tracks_total_count(self) -> int:
+        self.lock.acquire()
+        try:
+            return len(self.tracks)
+        finally:
+            self.lock.release()
+
+
 class TracksRepositoryException(Exception):
     pass

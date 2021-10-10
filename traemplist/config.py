@@ -22,20 +22,19 @@ class AccountConfig:
     playlists: [PlaylistConfig]
 
 
+@dataclass(frozen=True)
+class TraemplistConfig:
+    account: AccountConfig
+    traemplist_songs_count: int
+    traemplist_id: str
+
+
 class Config(ABC):
 
     LIKED_SONGS_PLAYLIST_ID = "liked_songs"
 
     @abstractmethod
-    def get_traemplist_songs_count(self) -> int:
-        pass
-
-    @abstractmethod
-    def get_accounts(self) -> [AccountConfig]:
-        pass
-
-    @abstractmethod
-    def get_traemplist_id(self) -> str:
+    def get_traemplist_configs(self) -> [TraemplistConfig]:
         pass
 
     @abstractmethod
@@ -46,16 +45,11 @@ class Config(ABC):
 class JsonConfig(Config):
 
     SCHEMA = {
-        "type": "object",
-        "properties": {
-            "traemplist_songs_count": {
-                "type": "integer",
-                "minimum": 10,
-                "maximum": 200
-            },
-            "accounts": {
-                "type": "array",
-                "items": {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "account": {
                     "type": "object",
                     "properties": {
                         "credentials": {
@@ -98,36 +92,38 @@ class JsonConfig(Config):
                         "playlists"
                     ]
                 },
-                "minItems": 1
+                "traemplist_songs_count": {
+                    "type": "integer",
+                    "minimum": 10,
+                    "maximum": 200
+                },
+                "traemplist_id": {
+                    "type": "string"
+                }
             },
-            "traemplist_id": {
-                "type": "string"
-            }
+            "required": [
+                "account",
+                "traemplist_songs_count",
+                "traemplist_id"
+            ]
         },
-        "required": [
-            "traemplist_songs_count",
-            "accounts",
-            "traemplist_id"
-        ]
+        "minItems": 1
     }
 
     def __init__(self, config_file_path: str):
+        """
+        :raises ConfigException
+        """
         self.config_file_path = config_file_path
         self.config_data = self._get_config_data()
         self._validate_config_data(self.config_data)
-        self.accounts = self._get_accounts_from_data()
+        self.traemplists = self._get_traemplists_from_data()
 
-    def get_traemplist_songs_count(self) -> int:
-        return self.config_data["traemplist_songs_count"]
-
-    def get_accounts(self) -> [AccountConfig]:
-        return self.accounts
-
-    def get_traemplist_id(self) -> str:
-        return self.config_data["traemplist_id"]
+    def get_traemplist_configs(self) -> [TraemplistConfig]:
+        return self.traemplists
 
     def save(self) -> None:
-        self.config_data["accounts"] = [asdict(account) for account in self.accounts]
+        self.config_data = [asdict(traemplist) for traemplist in self.traemplists]
         with open(self.config_file_path, "w") as config_file:
             config_file.write(
                 json.dumps(self.config_data, indent=2)
@@ -137,7 +133,7 @@ class JsonConfig(Config):
         try:
             with open(self.config_file_path) as config_file:
                 return json.load(config_file)
-        except FileExistsError:
+        except FileNotFoundError:
             raise ConfigFileNotFoundError
         except json.JSONDecodeError:
             raise InvalidJsonError
@@ -148,25 +144,33 @@ class JsonConfig(Config):
         except jsonschema.ValidationError:
             raise InvalidConfigDataError
 
-    def _get_accounts_from_data(self) -> [AccountConfig]:
-        accounts = []
-        for account_data in self.config_data["accounts"]:
-            playlists = []
-            for playlist_data in account_data["playlists"]:
-                playlists.append(
-                    PlaylistConfig(playlist_data["id"])
-                )
-            accounts.append(
-                AccountConfig(
-                    credentials=AccountCredentialsConfig(
-                        client_id=account_data["credentials"]["client_id"],
-                        client_secret=account_data["credentials"]["client_secret"],
-                        refresh_token=account_data["credentials"]["refresh_token"]
-                    ),
-                    playlists=playlists
+    def _get_traemplists_from_data(self) -> [TraemplistConfig]:
+        traemplists = []
+        for traemplist_data in self.config_data:
+            traemplists.append(
+                TraemplistConfig(
+                    account=self._get_account_from_data(traemplist_data["account"]),
+                    traemplist_songs_count=traemplist_data["traemplist_songs_count"],
+                    traemplist_id=traemplist_data["traemplist_id"]
                 )
             )
-        return accounts
+        return traemplists
+
+    @staticmethod
+    def _get_account_from_data(account_data: dict) -> AccountConfig:
+        playlists = []
+        for playlist_data in account_data["playlists"]:
+            playlists.append(
+                PlaylistConfig(playlist_data["id"])
+            )
+        return AccountConfig(
+            credentials=AccountCredentialsConfig(
+                client_id=account_data["credentials"]["client_id"],
+                client_secret=account_data["credentials"]["client_secret"],
+                refresh_token=account_data["credentials"]["refresh_token"]
+            ),
+            playlists=playlists
+        )
 
 
 class ConfigException(Exception):
