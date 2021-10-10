@@ -32,6 +32,6 @@ jobs:
     needs:
       - build
     steps:
+    - uses: actions/checkout@v2
     - name: executing unit tests
-      uses: actions/checkout@v2
       run: docker-compose up --build tests
