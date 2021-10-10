@@ -28,4 +28,4 @@ jobs:
         key: ${{ secrets.DIGITALOCEAN_SSH_PRIVATE_KEY }}
         script: cd /root/traemplist && git pull
     - name: executing tests
-      run: cd /root/traemplist && docker-compose up --build tests
+      run: docker-compose up --build tests
