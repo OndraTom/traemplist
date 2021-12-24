@@ -23,7 +23,7 @@ jobs:
     - name: executing remote git pull
       uses: appleboy/ssh-action@master
       with:
-        host: 157.230.103.23
+        host: 167.172.186.207
         username: root
         key: ${{ secrets.DIGITALOCEAN_SSH_PRIVATE_KEY }}
         script: cd /root/traemplist && git pull
