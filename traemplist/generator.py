@@ -1,3 +1,4 @@
+import random
 from traemplist.client import SpotifyClient, TracksCollection, Artist, Track
 from traemplist.repository import TracksRepository
 from traemplist.logger import Logger
@@ -24,8 +25,9 @@ class TraemplistGenerator:
             start_track = input_tracks_collection.get_random_track()
             self.logger.log_info(f"Randomly picked track: '{start_track.artist.name} - {start_track.name}'")
             self.logger.log_info("Loading top related artists' tracks")
-            related_artists_tracks = self._get_related_artists_tracks(start_track.artist)
-            for track in related_artists_tracks.get_tracks():
+            related_artists_tracks = list(self._get_related_artists_tracks(start_track.artist).get_tracks())
+            random.shuffle(related_artists_tracks)
+            for track in related_artists_tracks:
                 if self._is_traemplist_candidate(track, traemplist):
                     self.logger.log_info(f"'{track.artist.name} - {track.name}' seems like a good choice, adding")
                     traemplist.add_track(track)
